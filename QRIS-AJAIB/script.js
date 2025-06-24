@@ -1,15 +1,22 @@
+// =======================================================================
+// =            KODE LENGKAP FINAL - TINGGAL SALIN & TEMPEL            =
+// =======================================================================
+
+// --- PENGATURAN ---
+// Ganti nilai di bawah ini dengan kredensial asli milik Anda.
 const SETTINGS = {
   QRIS: {
-    apikey: "alfa2025", // Ganti dengan API Key Anda jika berbeda
+    apikey: "alfa2025", // Ganti dengan API Key Anda
     merchantId: "OK2385395", // Ganti dengan Merchant ID Anda
     keyorkut: "184646517465972242385395OKCTB1BFD496F29624C01FF8E5728CF69A17", // Ganti dengan Keyorkut Anda
     qrisCode: "00020101021126670016COM.NOBUBANK.WWW01189360050300000879140214140263240266770303UMI51440014ID.CO.QRIS.WWW0215ID20253948029410303UMI5204481253033605802ID5919ANDI CALL OK23853956005BLORA61055821162070703A0163044FEE" // Ganti dengan qrisCode Anda
   },
-  CHECK_INTERVAL_MS: 15000 // 15 detik
+  CHECK_INTERVAL_MS: 5000 // Mengecek setiap 5 detik
 };
 
 
-// Deklarasi variabel user
+// --- KODE APLIKASI (JANGAN DIUBAH KECUALI ANDA TAHU APA YANG DILAKUKAN) ---
+
 let user = {
   saldo: 0,
   status: false,
@@ -18,48 +25,51 @@ let user = {
   interval: null
 };
 
-
-// Fungsi untuk membuat pembayaran
 window.buatPembayaran = async function () {
   const jumlahDeposit = parseInt(document.getElementById("jumlah").value);
   if (!jumlahDeposit || jumlahDeposit <= 0) return alert("Masukkan jumlah yang valid!");
 
   const { apikey, qrisCode } = SETTINGS.QRIS;
-  const res = await fetch(`https://www.alfaofficial.cloud/orderkuota/createpayment?apikey=${apikey}&amount=${jumlahDeposit}&codeqr=${qrisCode}`);
-  const json = await res.json();
+  const apiUrl = `https://www.alfaofficial.cloud/orderkuota/createpayment?apikey=${apikey}&amount=${jumlahDeposit}&codeqr=${qrisCode}`;
 
-  if (!json?.result) return alert("❌ Gagal membuat QRIS.");
+  try {
+    const res = await fetch(apiUrl);
+    const json = await res.json();
 
-  const data = json.result;
+    if (!json?.result) return alert("❌ Gagal membuat QRIS: " + (json.message || "Tidak ada result."));
 
-  if (!data.idtransaksi || !data.imageqris || !data.imageqris.url) {
-    console.error("Data respons tidak lengkap:", data);
-    return alert("Gagal mendapatkan data QRIS yang lengkap dari server.");
+    const data = json.result;
+
+    if (!data.idtransaksi || !data.imageqris || !data.imageqris.url) {
+      console.error("Data respons tidak lengkap:", data);
+      return alert("Gagal mendapatkan data QRIS yang lengkap dari server.");
+    }
+
+    user.status = true;
+    user.amount = jumlahDeposit;
+    user.transactionId = data.idtransaksi;
+
+    document.getElementById("inputArea").classList.add("hidden");
+    document.getElementById("qrisArea").classList.remove("hidden");
+    document.getElementById("batalBtn").classList.remove("hidden");
+    document.getElementById("suksesArea").classList.add("hidden");
+
+    document.getElementById("qrisImage").src = data.imageqris.url;
+    document.getElementById("paymentInfo").innerHTML = `
+      💰 Jumlah: Rp ${jumlahDeposit.toLocaleString()}<br>
+      🆔 Transaksi: ${data.idtransaksi}<br> 
+      ⏰ Expired: 5 menit
+    `;
+
+    if (user.interval) clearInterval(user.interval);
+    user.interval = setInterval(cekStatusPembayaran, SETTINGS.CHECK_INTERVAL_MS);
+
+  } catch (err) {
+    console.error("Error saat membuat pembayaran:", err);
+    alert("Terjadi error. Silakan cek konsol (F12).");
   }
-
-  user.status = true;
-  user.amount = jumlahDeposit;
-  user.transactionId = data.idtransaksi;
-
-  document.getElementById("inputArea").classList.add("hidden");
-  document.getElementById("qrisArea").classList.remove("hidden");
-  document.getElementById("batalBtn").classList.remove("hidden");
-  document.getElementById("suksesArea").classList.add("hidden");
-
-  document.getElementById("qrisImage").src = data.imageqris.url;
-
-  document.getElementById("paymentInfo").innerHTML = `
-    💰 Jumlah: Rp ${jumlahDeposit.toLocaleString()}<br>
-    🆔 Transaksi: ${data.idtransaksi}<br> 
-    ⏰ Expired: 5 menit
-  `;
-
-  if (user.interval) clearInterval(user.interval);
-  user.interval = setInterval(cekStatusPembayaran, SETTINGS.CHECK_INTERVAL_MS);
 };
 
-
-// Fungsi untuk membatalkan pembayaran
 window.batalkanPembayaran = function () {
   if (!user.status) return alert("Tidak ada transaksi aktif.");
   user.status = false;
@@ -73,26 +83,35 @@ window.batalkanPembayaran = function () {
   document.getElementById("inputArea").classList.remove("hidden");
 };
 
-
-// Fungsi untuk mengecek status pembayaran
 async function cekStatusPembayaran() {
   if (!user.status) return clearInterval(user.interval);
 
   const { apikey, merchantId, keyorkut } = SETTINGS.QRIS;
+  const apiUrl = `https://www.alfaofficial.cloud/orderkuota/cekstatus?apikey=${apikey}&merchant=${merchantId}&keyorkut=${keyorkut}`;
 
   try {
-    const res = await fetch(`https://www.alfaofficial.cloud/orderkuota/cekstatus?apikey=${apikey}&merchant=${merchantId}&keyorkut=${keyorkut}`);
+    const res = await fetch(apiUrl);
     const json = await res.json();
+    let transaksi = null;
 
-    if (!json?.data || !Array.isArray(json.data)) {
-      console.log("Struktur data status tidak valid.");
-      return;
+    // Kode "Pintar" untuk mencoba menemukan transaksi dalam berbagai format
+    if (json?.data && Array.isArray(json.data)) {
+      // Jika formatnya adalah { data: [...] } (array)
+      transaksi = json.data.find(item => item.idtransaksi === user.transactionId);
+    } else if (json?.data && typeof json.data === 'object') {
+      // Jika formatnya adalah { data: {...} } (satu objek)
+      if (json.data.idtransaksi === user.transactionId) {
+        transaksi = json.data;
+      }
+    } else if (json?.result) {
+       // Mencoba format lain jika ada
+       if(json.result.idtransaksi === user.transactionId){
+         transaksi = json.result;
+       }
     }
-
-    const transaksi = json.data.find(item => item.idtransaksi === user.transactionId);
-
+    
     if (!transaksi) {
-      console.log("Transaksi belum ditemukan, mengecek ulang...");
+      console.log("Transaksi belum ditemukan atau format data tidak dikenali. Mengecek ulang...");
       return;
     }
 
@@ -112,7 +131,7 @@ async function cekStatusPembayaran() {
         📈 Saldo Baru: Rp ${user.saldo.toLocaleString()}
       `;
     } else {
-      console.log("Status: " + transaksi.status + ". Belum dibayar, mengecek ulang...");
+      console.log("Status: " + (transaksi.status || "UNKNOWN") + ". Belum dibayar, mengecek ulang...");
     }
 
   } catch (err) {
