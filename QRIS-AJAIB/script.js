@@ -1,8 +1,9 @@
 // =======================================================================
-// =            KODE INI SUDAH FINAL DAN BENAR SECARA LOGIKA             =
+// =       KODE LENGKAP - LOGIKA CEPAT & BERISIKO (MENIRU BOT)         =
 // =======================================================================
 
 // --- PENGATURAN ---
+// Ganti nilai di bawah ini dengan kredensial asli milik Anda.
 const SETTINGS = {
   QRIS: {
     apikey: "alfa2025", // Ganti dengan API Key Anda
@@ -21,7 +22,8 @@ let user = {
   status: false,
   amount: 0,
   transactionId: null,
-  interval: null
+  interval: null,
+  isPaid: false // Penanda baru untuk mencegah konfirmasi ganda
 };
 
 window.buatPembayaran = async function () {
@@ -47,6 +49,7 @@ window.buatPembayaran = async function () {
     user.status = true;
     user.amount = jumlahDeposit;
     user.transactionId = data.idtransaksi;
+    user.isPaid = false; // Set status bayar ke false setiap membuat pembayaran baru
 
     document.getElementById("inputArea").classList.add("hidden");
     document.getElementById("qrisArea").classList.remove("hidden");
@@ -83,19 +86,24 @@ window.batalkanPembayaran = function () {
 };
 
 async function cekStatusPembayaran() {
-  if (!user.status || !user.transactionId) return clearInterval(user.interval);
+  if (!user.status || user.isPaid) return clearInterval(user.interval);
 
   const { apikey, merchantId, keyorkut } = SETTINGS.QRIS;
-  const apiUrl = `https://www.alfaofficial.cloud/orderkuota/cekstatus?apikey=${apikey}&merchant=${merchantId}&keyorkut=${keyorkut}&idtransaksi=${user.transactionId}`;
+  const apiUrl = `https://www.alfaofficial.cloud/orderkuota/cekstatus?apikey=${apikey}&merchant=${merchantId}&keyorkut=${keyorkut}`;
 
   try {
     const res = await fetch(apiUrl);
     const json = await res.json();
     
-    if (json?.result && json.result.idtransaksi === user.transactionId) {
-      const transaksi = json.result;
-
-      if (transaksi.status === "PAID") {
+    // LOGIKA BARU: Meniru cara kerja bot dengan mencocokkan JUMLAH UANG
+    // PERINGATAN: Cara ini tidak aman untuk transaksi serentak.
+    if (json?.result && json.result.amount == user.amount) {
+      
+      // Cek sederhana untuk mencegah konfirmasi berulang
+      if (user.status && !user.isPaid) { 
+        console.log("Transaksi dengan jumlah yang cocok ditemukan! Menganggap pembayaran berhasil.");
+        
+        user.isPaid = true; // Tandai sudah lunas agar tidak dicek lagi
         user.status = false;
         clearInterval(user.interval);
         user.saldo += user.amount;
@@ -107,14 +115,13 @@ async function cekStatusPembayaran() {
         document.getElementById("suksesInfo").innerHTML = `
           <strong>Pembayaran Berhasil ✅</strong><br><br>
           💰 Jumlah: Rp ${user.amount.toLocaleString()}<br>
-          🆔 ID Transaksi: ${user.transactionId}<br>
+          🆔 ID Transaksi: ${user.transactionId} (Dikonfirmasi berdasarkan jumlah)<br>
           📈 Saldo Baru: Rp ${user.saldo.toLocaleString()}
         `;
-      } else {
-        console.log("Status: " + transaksi.status + ". Belum dibayar, mengecek ulang...");
       }
+
     } else {
-      console.log(`Mencari transaksi ${user.transactionId}... (Server belum memberikan update spesifik)`);
+      console.log(`Mencari transaksi dengan jumlah Rp ${user.amount}... Belum ditemukan.`);
     }
   } catch (err) {
     console.error("Gagal cek status:", err);
