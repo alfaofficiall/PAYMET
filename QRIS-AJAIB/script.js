@@ -21,17 +21,17 @@ window.buatPembayaran = async function () {
   const data = json.result;
   user.status = true;
   user.amount = jumlahDeposit;
-  user.transactionId = data.transactionId;
+  user.transactionId = data.idtransaksi;
 
   document.getElementById("inputArea").classList.add("hidden");
   document.getElementById("qrisArea").classList.remove("hidden");
   document.getElementById("batalBtn").classList.remove("hidden");
   document.getElementById("suksesArea").classList.add("hidden");
 
-  document.getElementById("qrisImage").src = data.qrImageUrl;
+  document.getElementById("qrisImage").src = data.qrImageqris.url;
   document.getElementById("paymentInfo").innerHTML = `
     💰 Jumlah: Rp ${jumlahDeposit.toLocaleString()}<br>
-    🆔 Transaksi: ${data.transactionId}<br>
+    🆔 Transaksi: ${data.idtransaksi}<br>
     ⏰ Expired: 5 menit
   `;
 
