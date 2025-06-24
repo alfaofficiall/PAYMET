@@ -28,7 +28,7 @@ window.buatPembayaran = async function () {
   document.getElementById("batalBtn").classList.remove("hidden");
   document.getElementById("suksesArea").classList.add("hidden");
 
-  document.getElementById("qrisImage").src = data.qrImageqris.url;
+  document.getElementById("qrisImage").src = data.Imageqris.url;
   document.getElementById("paymentInfo").innerHTML = `
     💰 Jumlah: Rp ${jumlahDeposit.toLocaleString()}<br>
     🆔 Transaksi: ${data.idtransaksi}<br>
