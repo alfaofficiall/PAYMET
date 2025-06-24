@@ -1,9 +1,8 @@
-// =======================================================================
-// =            KODE LENGKAP FINAL - TINGGAL SALIN & TEMPEL            =
+ // =======================================================================
+// =         KODE FINAL DENGAN DEBUGGER - TOLONG COPY SEMUA          =
 // =======================================================================
 
 // --- PENGATURAN ---
-// Ganti nilai di bawah ini dengan kredensial asli milik Anda.
 const SETTINGS = {
   QRIS: {
     apikey: "alfa2025", // Ganti dengan API Key Anda
@@ -11,11 +10,11 @@ const SETTINGS = {
     keyorkut: "184646517465972242385395OKCTB1BFD496F29624C01FF8E5728CF69A17", // Ganti dengan Keyorkut Anda
     qrisCode: "00020101021126670016COM.NOBUBANK.WWW01189360050300000879140214140263240266770303UMI51440014ID.CO.QRIS.WWW0215ID20253948029410303UMI5204481253033605802ID5919ANDI CALL OK23853956005BLORA61055821162070703A0163044FEE" // Ganti dengan qrisCode Anda
   },
-  CHECK_INTERVAL_MS: 5000 // Mengecek setiap 5 detik
+  CHECK_INTERVAL_MS: 5000 
 };
 
 
-// --- KODE APLIKASI (JANGAN DIUBAH KECUALI ANDA TAHU APA YANG DILAKUKAN) ---
+// --- KODE APLIKASI ---
 
 let user = {
   saldo: 0,
@@ -92,19 +91,21 @@ async function cekStatusPembayaran() {
   try {
     const res = await fetch(apiUrl);
     const json = await res.json();
+    
+    // =========================================================================
+    // BARIS INI AKAN MEMBERIKAN JAWABAN FINAL, TOLONG KIRIMKAN HASILNYA
+    console.log("!!! INI JAWABAN DARI SERVER !!!", json);
+    // =========================================================================
+
     let transaksi = null;
 
-    // Kode "Pintar" untuk mencoba menemukan transaksi dalam berbagai format
     if (json?.data && Array.isArray(json.data)) {
-      // Jika formatnya adalah { data: [...] } (array)
       transaksi = json.data.find(item => item.idtransaksi === user.transactionId);
     } else if (json?.data && typeof json.data === 'object') {
-      // Jika formatnya adalah { data: {...} } (satu objek)
       if (json.data.idtransaksi === user.transactionId) {
         transaksi = json.data;
       }
     } else if (json?.result) {
-       // Mencoba format lain jika ada
        if(json.result.idtransaksi === user.transactionId){
          transaksi = json.result;
        }
