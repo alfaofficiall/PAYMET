@@ -1,9 +1,8 @@
-  // =======================================================================
-// =             KODE FINAL V2 - BERDASARKAN HASIL LOG                 =
+// =======================================================================
+// =            KODE INI SUDAH FINAL DAN BENAR SECARA LOGIKA             =
 // =======================================================================
 
 // --- PENGATURAN ---
-// Ganti nilai di bawah ini dengan kredensial asli milik Anda.
 const SETTINGS = {
   QRIS: {
     apikey: "alfa2025", // Ganti dengan API Key Anda
@@ -83,26 +82,20 @@ window.batalkanPembayaran = function () {
   document.getElementById("inputArea").classList.remove("hidden");
 };
 
-// =========================================================================
-// =          FUNGSI CEK STATUS YANG SUDAH DIPERBAIKI TOTAL            =
-// =========================================================================
 async function cekStatusPembayaran() {
   if (!user.status || !user.transactionId) return clearInterval(user.interval);
 
   const { apikey, merchantId, keyorkut } = SETTINGS.QRIS;
-  // URL DIPERBAIKI dengan menambahkan ID transaksi yang ingin dicek
   const apiUrl = `https://www.alfaofficial.cloud/orderkuota/cekstatus?apikey=${apikey}&merchant=${merchantId}&keyorkut=${keyorkut}&idtransaksi=${user.transactionId}`;
 
   try {
     const res = await fetch(apiUrl);
     const json = await res.json();
     
-    // Karena kita sudah meminta ID spesifik, kita langsung cek di 'result'
     if (json?.result && json.result.idtransaksi === user.transactionId) {
       const transaksi = json.result;
 
       if (transaksi.status === "PAID") {
-        // JIKA BERHASIL
         user.status = false;
         clearInterval(user.interval);
         user.saldo += user.amount;
@@ -118,12 +111,10 @@ async function cekStatusPembayaran() {
           📈 Saldo Baru: Rp ${user.saldo.toLocaleString()}
         `;
       } else {
-        // JIKA BELUM DIBAYAR
         console.log("Status: " + transaksi.status + ". Belum dibayar, mengecek ulang...");
       }
     } else {
-      // JIKA DATA TIDAK DITEMUKAN ATAU FORMAT LAIN
-      console.log("Mencari transaksi... (Server belum memberikan update)");
+      console.log(`Mencari transaksi ${user.transactionId}... (Server belum memberikan update spesifik)`);
     }
   } catch (err) {
     console.error("Gagal cek status:", err);
